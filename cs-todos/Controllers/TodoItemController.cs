@@ -38,4 +38,23 @@ public class TodoItemController : ControllerBase
 
         return Ok(items); // Return a 200 OK response with the list of todo items
     }
+
+    // Define a GET endpoint for api/todoitem/{id}
+    // This method returns a single TodoItem object by ID
+    [HttpGet("{id}")] // this attribute specifies the route template with a parameter
+    [ProducesResponseType(200, Type = typeof(TodoItem))] // This attribute specifies the response type and status code
+    [ProducesResponseType(404)] // This attribute specifies another possible response status code
+    public IActionResult GetTodo(long id) 
+    { 
+        _logger.LogInformation("GetTodo endpoint called with ID {Id}.", id); // Log that the endpoint was called with an ID
+
+        var item = _todoRepository.GetTodoById(id); // Use the repository to get a todo item by ID
+        if (item == null) 
+        {
+            _logger.LogWarning("Todo item with ID {Id} not found.", id); // Log a warning if the item is not found
+            return NotFound(); // Return a 404 Not Found response
+        }
+        return Ok(item); // Return a 200 OK response with the todo item
+    }
+
 }
