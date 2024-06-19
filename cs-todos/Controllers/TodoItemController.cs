@@ -26,35 +26,75 @@ public class TodoItemController : ControllerBase
     {
         _logger.LogInformation("GetTodos endpoint called."); // Log that the endpoint was called
 
-        var items = _todoRepository.GetTodos(); // Use the repository to get all todo items
-        _logger.LogInformation("Retrieved {Count} todo items", items.Count); // Log the count of retrieved items
-
-        // Check if the model state is valid
-        if (!ModelState.IsValid)
+        try
         {
-            _logger.LogWarning("Model state is invalid."); // Log a warning if the model state is invalid
-            return BadRequest(ModelState); // Return a 400 Bad Request response
+            var items = _todoRepository.GetTodos(); // Use the repository to get all todo items
+            _logger.LogInformation("Retrieved {Count} todo items", items.Count); // Log the count of retrieved items
+            return Ok(items); // Return a 200 OK response with the list of todo items
         }
-
-        return Ok(items); // Return a 200 OK response with the list of todo items
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while fetching todo items."); // Log the error
+            return StatusCode(500, "Internal server error"); // Return a 500 Internal Server Error response
+        }
     }
 
     // Define a GET endpoint for api/todoitem/{id}
     // This method returns a single TodoItem object by ID
-    [HttpGet("{id}")] // this attribute specifies the route template with a parameter
+    [HttpGet("{id}")] // This attribute specifies the route template with a parameter
     [ProducesResponseType(200, Type = typeof(TodoItem))] // This attribute specifies the response type and status code
     [ProducesResponseType(404)] // This attribute specifies another possible response status code
-    public IActionResult GetTodo(long id) 
-    { 
+    public IActionResult GetTodo(long id)
+    {
         _logger.LogInformation("GetTodo endpoint called with ID {Id}.", id); // Log that the endpoint was called with an ID
 
-        var item = _todoRepository.GetTodoById(id); // Use the repository to get a todo item by ID
-        if (item == null) 
+        try
         {
-            _logger.LogWarning("Todo item with ID {Id} not found.", id); // Log a warning if the item is not found
-            return NotFound(); // Return a 404 Not Found response
+            var item = _todoRepository.GetTodoById(id); // Use the repository to get a todo item by ID
+            if (item == null)
+            {
+                _logger.LogWarning("Todo item with ID {Id} not found.", id); // Log a warning if the item is not found
+                return NotFound(new { Message = $"Todo item with ID {id} not found." }); // Return a 404 Not Found response with a custom message
+            }
+            return Ok(item); // Return a 200 OK response with the todo item
         }
-        return Ok(item); // Return a 200 OK response with the todo item
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while fetching the todo item."); // Log the error
+            return StatusCode(500, "Internal server error"); // Return a 500 Internal Server Error response
+        }
     }
 
+    // Define a POST endpoint for api/todoitem
+    // This method adds a new TodoItem to the database
+    [HttpPost] // This attribute specifies the HTTP method
+    [ProducesResponseType(201)] // This attribute specifies the response status code
+    [ProducesResponseType(400)] // This attribute specifies another possible response status code
+    public IActionResult AddTodoItem([FromBody] TodoItem item) // FromBody attribute binds the request body to the parameter
+    {
+        _logger.LogInformation("AddTodoItem endpoint called."); // Log that the endpoint was called
+
+        if (item == null)
+        {
+            _logger.LogWarning("Request body is null."); // Log a warning if the request body is null
+            return BadRequest(new { Message = "Request body is null." }); // Return a 400 Bad Request response with a custom message
+        }
+
+        if (!ModelState.IsValid)
+        {
+            _logger.LogWarning("Model state is invalid."); // Log a warning if the model state is invalid
+            return BadRequest(ModelState); // Return a 400 Bad Request response with model validation errors
+        }
+
+        try
+        {
+            _todoRepository.AddTodoItem(item); // Use the repository to add a new todo item
+            return CreatedAtAction(nameof(GetTodo), new { id = item.Id }, item); // Return a 201 Created response with the added todo item
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while adding the todo item."); // Log the error
+            return StatusCode(500, "Internal server error"); // Return a 500 Internal Server Error response
+        }
+    }
 }
