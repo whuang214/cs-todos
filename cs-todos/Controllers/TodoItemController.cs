@@ -97,4 +97,74 @@ public class TodoItemController : ControllerBase
             return StatusCode(500, "Internal server error"); // Return a 500 Internal Server Error response
         }
     }
+
+    // Define a PUT endpoint for api/todoitem/{id}
+    // This method updates an existing TodoItem in the database
+    [HttpPut("{id}")] // This attribute specifies the route template with a parameter
+    [ProducesResponseType(204)] // This attribute specifies the response status code
+    [ProducesResponseType(400)] // This attribute specifies another possible response status code
+    [ProducesResponseType(404)] // This attribute specifies another possible response status code
+    public IActionResult UpdateTodoItem(long id, [FromBody] TodoItem item) // FromBody attribute binds the request body to the parameter
+    {
+        _logger.LogInformation("UpdateTodoItem endpoint called with ID {Id}.", id); // Log that the endpoint was called with an ID
+
+        if (item == null)
+        {
+            _logger.LogWarning("Request body is null."); // Log a warning if the request body is null
+            return BadRequest(new { Message = "Request body is null." }); // Return a 400 Bad Request response with a custom message
+        }
+
+        if (!ModelState.IsValid)
+        {
+            _logger.LogWarning("Model state is invalid."); // Log a warning if the model state is invalid
+            return BadRequest(ModelState); // Return a 400 Bad Request response with model validation errors
+        }
+
+        try
+        {
+            var existingItem = _todoRepository.GetTodoById(id); // Use the repository to get a todo item by ID
+            if (existingItem == null)
+            {
+                _logger.LogWarning("Todo item with ID {Id} not found.", id); // Log a warning if the item is not found
+                return NotFound(new { Message = $"Todo item with ID {id} not found." }); // Return a 404 Not Found response with a custom message
+            }
+
+            item.Id = id; // Set the ID of the item to the requested ID
+            _todoRepository.UpdateTodoItem(item); // Use the repository to update the todo 
+            return NoContent(); // Return a 204 No Content response
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while updating the todo item."); // Log the error
+            return StatusCode(500, "Internal server error"); // Return a 500 Internal Server Error response
+        }
+    }
+
+    // Define a DELETE endpoint for api/todoitem/{id}
+    // This method deletes a TodoItem from the database
+    [HttpDelete("{id}")] // This attribute specifies the route template with a parameter
+    [ProducesResponseType(204)] // This attribute specifies the response status code
+    [ProducesResponseType(404)] // This attribute specifies another possible response status code
+    public IActionResult DeleteTodoItem(long id)
+    {
+        _logger.LogInformation("DeleteTodoItem endpoint called with ID {Id}.", id); // Log that the endpoint was called with an ID
+
+        try
+        {
+            var existingItem = _todoRepository.GetTodoById(id); // Use the repository to get a todo item by ID
+            if (existingItem == null)
+            {
+                _logger.LogWarning("Todo item with ID {Id} not found.", id); // Log a warning if the item is not found
+                return NotFound(new { Message = $"Todo item with ID {id} not found." }); // Return a 404 Not Found response with a custom message
+            }
+
+            _todoRepository.DeleteTodoItem(id); // Use the repository to delete the todo item
+            return NoContent(); // Return a 204 No Content response
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting the todo item."); // Log the error
+            return StatusCode(500, "Internal server error"); // Return a 500 Internal Server Error response
+        }
+    }
 }

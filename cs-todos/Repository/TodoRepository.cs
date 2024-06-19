@@ -1,6 +1,7 @@
 ﻿using cs_todos.Data; // Importing the namespace where the DataContext is defined
 using cs_todos.Interfaces; // Importing the namespace where the ITodoRepository interface is defined
 using cs_todos.Models; // Importing the namespace where the TodoItem model is defined
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging; // Importing the logging library
 using System.Collections.Generic; // Importing the collection library
 using System.Linq; // Importing LINQ for querying collections
@@ -55,10 +56,19 @@ namespace cs_todos.Repository
         public void UpdateTodoItem(TodoItem item)
         {
             _logger.LogInformation("Updating todo item with ID {Id} in database.", item.Id); // Log information before updating data
+
+            var existingItem = _context.TodoItems.Find(item.Id); // Find the existing item
+            if (existingItem != null)
+            {
+                _context.Entry(existingItem).State = EntityState.Detached; // Detach the existing item
+            }
+
             _context.TodoItems.Update(item); // Use the DataContext to update an existing TodoItem
             _context.SaveChanges(); // Save changes to the database
             _logger.LogInformation("Todo item with ID {Id} updated in database.", item.Id); // Log information after updating data
         }
+
+
 
         // Implementation of the DeleteTodoItem method defined in the ITodoRepository interface
         public void DeleteTodoItem(long id)
